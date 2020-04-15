@@ -103,7 +103,7 @@ CONTAINER_HASH=$(docker ps -q -f name=$REDIS_CONTAINER_NAME 2>/dev/null);
 
 if [ -z "$CONTAINER_HASH" ]; then
 	printf "Starting Redis container..."
-    docker run -d --name=$REDIS_CONTAINER_NAME -v $REDIS_VOLUME_NAME:/data $REDIS_IMAGE_NAME &>/dev/null
+        docker run -d --name=$REDIS_CONTAINER_NAME -v $REDIS_VOLUME_NAME:/data $REDIS_IMAGE_NAME &>/dev/null
 	showResultOrExit
 else 
 	warn "Docker container already running [$REDIS_CONTAINER_NAME : $CONTAINER_HASH]"
