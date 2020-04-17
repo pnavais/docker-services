@@ -8,6 +8,9 @@ SCRIPT_DIR=$(cd "$(dirname ${BASH_SOURCE[0]})"; pwd);
 REDIS_VOLUME_NAME="redis_data"
 REDIS_IMAGE_NAME="redis-custom"
 REDIS_CONTAINER_NAME="redis_$OSTYPE"
+HOST_PORT=6379
+REDIS_CONTAINER_PORT=6379
+DOCKER_CMD="docker"
 
 RES_OK="\xE2\x9C\x94"   #"\u2714";
 RES_FAIL="\xE2\x9C\x96" #"\u2716";
@@ -79,7 +82,7 @@ function showResultOrExit() {
 	local err=$?;
 	showResult $err;
 	if [[ $err -ne 0 ]]; then
-		exit -1;
+		exit 2;
 	fi
 }
 
@@ -135,32 +138,36 @@ function stripAnsi() {
 # Entry point
 # -----------
 
-VOLUME_NAME=$(docker volume ls -q -f name=$REDIS_VOLUME_NAME 2>/dev/null);
+if ! hash $DOCKER_CMD 2>/dev/null; then
+	fail "Docker command not found [$DOCKER_CMD]";
+	exit 1;
+fi
+
+VOLUME_NAME=$($DOCKER_CMD volume ls -q -f name=$REDIS_VOLUME_NAME 2>/dev/null);
 
 pad "Creating volume \"$REDIS_VOLUME_NAME\""
 if [ -z "$VOLUME_NAME" ]; then
-	docker volume create $REDIS_VOLUME_NAME &>/dev/null
-	showResultOrExit
+	$DOCKER_CMD volume create $REDIS_VOLUME_NAME &>/dev/null
 else
 	WARN_MSG="Volume found [$VOLUME_NAME]"
 fi
 showResultOrExit
 
-IMAGE_HASH=$(docker images -q $REDIS_IMAGE_NAME 2>/dev/null);
+IMAGE_HASH=$($DOCKER_CMD images -q $REDIS_IMAGE_NAME 2>/dev/null);
 
 pad "Building \"$REDIS_IMAGE_NAME\" image"
 if [ -z "$IMAGE_HASH" ]; then
-	docker build --tag $REDIS_IMAGE_NAME $SCRIPT_DIR &>/dev/null
+	$DOCKER_CMD build --tag $REDIS_IMAGE_NAME $SCRIPT_DIR &>/dev/null
 else
 	WARN_MSG="Image found [$REDIS_IMAGE_NAME : $IMAGE_HASH]"
 fi
 showResultOrExit
 
-CONTAINER_HASH=$(docker ps -q -f name=$REDIS_CONTAINER_NAME 2>/dev/null);
+CONTAINER_HASH=$($DOCKER_CMD ps -q -f name=$REDIS_CONTAINER_NAME 2>/dev/null);
 
 pad "Starting Redis container"
 if [ -z "$CONTAINER_HASH" ]; then
-	docker run -d --name=$REDIS_CONTAINER_NAME -v $REDIS_VOLUME_NAME:/data $REDIS_IMAGE_NAME &>/dev/null
+	$DOCKER_CMD run -d --name=$REDIS_CONTAINER_NAME --restart=always -p $HOST_PORT:$REDIS_CONTAINER_PORT -v $REDIS_VOLUME_NAME:/data $REDIS_IMAGE_NAME &>/dev/null
 else
 	WARN_MSG="Container already running [$REDIS_CONTAINER_NAME : $CONTAINER_HASH]"
 fi
