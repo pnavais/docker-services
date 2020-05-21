@@ -11,9 +11,25 @@ DOCKER_CMD="docker"
 RES_OK="\xE2\x9C\x94"   #"\u2714";
 RES_FAIL="\xE2\x9C\x96" #"\u2716";
 RES_WARN="\xE2\x9A\xA0" #"\u2716";
+VERBOSE=0
+NO_REDIR="&>/dev/null"
+CUR_IO_REDIR="$NO_REDIR"
 
 # Functions
 ###########
+
+#######################################
+# Toggles verbose mode
+#######################################
+function toggleVerbose() {
+	if [ $VERBOSE -eq 0 ]; then
+		VERBOSE=1;
+		CUR_IO_REDIR="";
+	else
+		VERBOSE=0;
+		CUR_IO_REDIR="$NO_REDIR";
+	fi
+}
 
 #######################################
 # Shows a debug message (Yellow color)
@@ -197,7 +213,7 @@ function createImage() {
 
 	pad "Building \"$imageName\" image"
 	if [ -z "$imageId" ]; then
-		$DOCKER_CMD build --tag $imageName $dockerFilePath &>/dev/null
+		eval "$DOCKER_CMD build --tag $imageName $dockerFilePath $CUR_IO_REDIR"
 	else
 		WARN_MSG="Image found [$imageName : $imageId]"
 	fi
@@ -228,7 +244,11 @@ function runContainer() {
 
 	pad "Starting $containerDisplayName container"
 	if [ -z "$containerId" ]; then
-		$DOCKER_CMD run -d --name=$containerName --restart=$restartPolicy $extraArgs $imageName &>/dev/null
+		cmd="$DOCKER_CMD run -d --name=$containerName --restart=$restartPolicy $extraArgs $imageName $CUR_IO_REDIR"
+		if [ $VERBOSE -eq 1 ]; then
+			printf "Command = |$cmd|\n"
+		fi
+		eval $cmd
 	else
 		WARN_MSG="Container already running [$containerName : $containerId]"
 	fi
