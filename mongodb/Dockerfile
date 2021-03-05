@@ -1,0 +1,5 @@
+FROM mongo:4.4.4
+ENV MONGO_INITDB_ROOT_USERNAME admin
+ENV MONGO_INITDB_ROOT_PASSWORD admin
+
+COPY conf/mongod.conf /etc/mongo
