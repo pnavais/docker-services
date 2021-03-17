@@ -65,7 +65,9 @@ createImage $IMAGE_NAME $target_dir
 showResultOrExit
 
 if [ $ENABLE_AUTH == 1 ]; then
+	pad "Performing image creation cleanup" 
 	rm -fr $target_dir
+	showResultOrExit
 fi
 
 EXTRA_ARGS="-p $(toFlatString "${PORTS_MAPPING[@]}")"
