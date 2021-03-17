@@ -21,6 +21,8 @@ VOLS_MAPPING=("$VOLUME_NAME:/data/db")
 # Entry point
 # -----------
 
+ENABLE_AUTH=0
+
 # Parse options
 for arg in "$@"
 do
@@ -30,6 +32,10 @@ do
 			;;
 		--default)
 			shift # past argument with no value
+			;;
+		--enable-auth)
+			shift
+			ENABLE_AUTH=1
 			;;
 		*)
 			# unknown option
@@ -44,8 +50,23 @@ checkDocker
 createVolume $VOLUME_NAME
 showResultOrExit
 
-createImage $IMAGE_NAME $CURRENT_DIR
+if [ $ENABLE_AUTH == 1 ]; then
+	pad "Enabling basic MongoDB authorization" 
+	target_dir=$(mktemp -d -t docker_build-XXXXXXXXXX)
+	if [ $? -eq 0 ]; then
+		rsync -avz $CURRENT_DIR/ $target_dir &> /dev/null && sed -i -e "s/^#{AUTH_ENABLE}//g" $target_dir/Dockerfile &> /dev/null
+	fi
+	showResultOrExit
+else
+	target_dir=$CURRENT_DIR
+fi
+
+createImage $IMAGE_NAME $target_dir
 showResultOrExit
+
+if [ $ENABLE_AUTH == 1 ]; then
+	rm -fr $target_dir
+fi
 
 EXTRA_ARGS="-p $(toFlatString "${PORTS_MAPPING[@]}")"
 EXTRA_ARGS=$EXTRA_ARGS" -v $(toFlatString "${VOLS_MAPPING}")"
