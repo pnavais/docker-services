@@ -211,9 +211,18 @@ function createImage() {
 
 	local imageId=$($DOCKER_CMD images -q $imageName 2>/dev/null);
 
+	# When the active "docker build" backend is buildx (e.g. Docker CLI
+	# fronting a Podman socket), the build result stays only in the
+	# BuildKit cache unless --load is passed, so the image never reaches
+	# the local image store and later "docker run" fails to find it.
+	local loadFlag="";
+	if $DOCKER_CMD build --help 2>/dev/null | grep -q -- '--load'; then
+		loadFlag="--load";
+	fi
+
 	pad "Building \"$imageName\" image"
 	if [ -z "$imageId" ]; then
-		eval "$DOCKER_CMD build --tag $imageName $dockerFilePath $CUR_IO_REDIR"
+		eval "$DOCKER_CMD build $loadFlag --tag $imageName $dockerFilePath $CUR_IO_REDIR"
 	else
 		WARN_MSG="Image found [$imageName : $imageId]"
 	fi
